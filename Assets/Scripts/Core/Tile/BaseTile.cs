@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class BaseTile : MonoBehaviour
 {
-    private TileServiceLocator _tileServiceLocator;
+    public TileServiceLocator tileServiceLocator;
 
     #region PROPERTY
     public int faction;
@@ -11,12 +11,12 @@ public class BaseTile : MonoBehaviour
 
     private void Awake()
     {
-        _tileServiceLocator = GetComponent<TileServiceLocator>();
+        tileServiceLocator = GetComponent<TileServiceLocator>();
 
-        faction = Random.Range(0, 9);
-        layer = Random.Range(0, 3);
+        // faction = Random.Range(0, 9);
+        // layer = Random.Range(0, 3);
 
-        _tileServiceLocator.tileUI.SetFactionText(faction);
+        // tileServiceLocator.tileUI.SetFactionText(faction);
     }
 
     public void SetLayer(int layer)
@@ -25,10 +25,23 @@ public class BaseTile : MonoBehaviour
 
         transform.GetChild(0).GetComponent<Canvas>().sortingOrder = 2 * layer + 1;
 
-        _tileServiceLocator.spriteRenderer.sortingOrder = 2 * layer;
+        tileServiceLocator.spriteRenderer.sortingOrder = 2 * layer;
 
         float value = 1 - 0.2f * (maxLayer - layer);
 
-        _tileServiceLocator.spriteRenderer.color = new Color(value, value, value, 1);
+        Color color = Color.white;
+
+        if (layer == 1)
+        {
+            color = new Color(200 / 255f, 50 / 255f, 80 / 255f, 1);
+        }
+        if (layer == 2)
+        {
+            color = new Color(30 / 255f, 150 / 255f, 180 / 255f, 1);
+        }
+
+        tileServiceLocator.spriteRenderer.color = color;
+
+        this.layer = layer; 
     }
 }

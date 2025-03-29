@@ -5,6 +5,8 @@ public class LevelLoader : MonoBehaviour
 {
     [SerializeField] private BaseTile tilePrefab;
 
+    private List<BaseTile> _spawnedTiles;
+
     private void Awake()
     {
         GenerateBoard();
@@ -20,6 +22,8 @@ public class LevelLoader : MonoBehaviour
         Vector2 offset = Vector2.zero;
 
         Dictionary<Vector2, SpawnTileInfo> checkList = new Dictionary<Vector2, SpawnTileInfo>();
+
+        _spawnedTiles = new List<BaseTile>();
 
         for (int i = 0; i <= row; i++)
         {
@@ -69,6 +73,8 @@ public class LevelLoader : MonoBehaviour
                 spawnTileInfo.layer = layer;
 
                 checkList.Add(new Vector2(j, i), spawnTileInfo);
+
+                _spawnedTiles.Add(tile);
             }
         }
 
@@ -102,8 +108,25 @@ public class LevelLoader : MonoBehaviour
 
                     tile.transform.position = position;
                     tile.SetLayer(spawnTileInfo.layer);
+
+                    _spawnedTiles.Add(tile);
                 }
             }
+        }
+
+        List<int> poolFaction = new List<int>();
+
+        for (int i = 0; i < _spawnedTiles.Count / 2; i++)
+        {
+            int faction = Random.Range(0, 9);
+
+            poolFaction.Add(faction);
+            poolFaction.Add(faction);
+        }
+
+        for (int i = 0; i < _spawnedTiles.Count; i++)
+        {
+            _spawnedTiles[i].tileServiceLocator.tileUI.SetFactionText(poolFaction[i]);
         }
     }
 
