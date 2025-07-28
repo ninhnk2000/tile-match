@@ -35,5 +35,6 @@ public class BaseTile : MonoBehaviour
 
         // tileServiceLocator.spriteRenderer.color = color;
         tileServiceLocator.tileProperty.Layer = layer;
+        tileServiceLocator.tileUI.SetLayer(layer);
     }
 }

@@ -17,9 +17,9 @@ public class LevelLoader : MonoBehaviour
     private void GenerateBoard()
     {
         int row = 3;
-        int column = 3;
+        int column = 2;
 
-        float tileSize = tilePrefab.GetComponent<SpriteRenderer>().bounds.size.x;
+        float tileSize = tilePrefab.GetComponent<TileUI>().TileSize;
 
         Vector2 offset = Vector2.zero;
 
@@ -49,12 +49,12 @@ public class LevelLoader : MonoBehaviour
                 position.x = j * tileSize;
                 position.y = i * tileSize;
 
-                if (j > 0)
-                {
-                    offset.x = Random.Range(0, 2) * 0.5f * tileSize;
+                // if (j > 0)
+                // {
+                //     offset.x = Random.Range(0, 2) * 0.5f * tileSize;
 
-                    position += offset;
-                }
+                //     position += offset;
+                // }
 
                 BaseTile tile = Instantiate(tilePrefab, transform);
 
@@ -119,11 +119,10 @@ public class LevelLoader : MonoBehaviour
         // Faction
         List<int> poolFaction = new List<int>();
 
-        for (int i = 0; i < _spawnedTiles.Count / 2; i++)
+        for (int i = 0; i < _spawnedTiles.Count; i++)
         {
             int faction = Random.Range(0, 9);
 
-            poolFaction.Add(faction);
             poolFaction.Add(faction);
         }
 
