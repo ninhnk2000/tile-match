@@ -5,7 +5,9 @@ public class LevelLoader : MonoBehaviour
 {
     [SerializeField] private BaseTile tilePrefab;
 
+    #region PRIVATE FIELD
     private List<BaseTile> _spawnedTiles;
+    #endregion
 
     private void Awake()
     {
@@ -114,6 +116,7 @@ public class LevelLoader : MonoBehaviour
             }
         }
 
+        // Faction
         List<int> poolFaction = new List<int>();
 
         for (int i = 0; i < _spawnedTiles.Count / 2; i++)
@@ -126,7 +129,9 @@ public class LevelLoader : MonoBehaviour
 
         for (int i = 0; i < _spawnedTiles.Count; i++)
         {
-            _spawnedTiles[i].tileServiceLocator.tileUI.SetFactionText(poolFaction[i]);
+            _spawnedTiles[i].tileServiceLocator.tileProperty.Faction = poolFaction[i];
+            _spawnedTiles[i].tileServiceLocator.tileUI.SetIcon(poolFaction[i]);
+            // _spawnedTiles[i].tileServiceLocator.tileUI.SetFactionText(poolFaction[i]);
         }
     }
 

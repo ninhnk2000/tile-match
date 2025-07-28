@@ -3,16 +3,24 @@ using UnityEngine;
 
 public class TileUI : MonoBehaviour
 {
+    [SerializeField] private SpriteRenderer icon;
     [SerializeField] private TMP_Text factionText;
     [SerializeField] private TMP_Text layerText;
 
-    public void SetFactionText(int value)
+    [SerializeField] public Sprite[] spriteContainer;
+
+    public void SetIcon(int faction)
     {
-        factionText.text = $"{value}";
+        icon.sprite = spriteContainer[faction];
     }
 
-    public void SetLayerText(int value)
-    {
-        layerText.text = $"{value}";
-    }
+    // public void SetFactionText(int value)
+    // {
+    //     factionText.text = $"{value}";
+    // }
+
+    // public void SetLayerText(int value)
+    // {
+    //     layerText.text = $"{value}";
+    // }
 }

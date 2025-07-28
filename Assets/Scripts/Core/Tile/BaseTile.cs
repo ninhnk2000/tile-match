@@ -4,10 +4,10 @@ public class BaseTile : MonoBehaviour
 {
     public TileServiceLocator tileServiceLocator;
 
-    #region PROPERTY
-    public int faction;
-    public int layer;
-    #endregion
+    // #region PROPERTY
+    // public int faction;
+    // public int layer;
+    // #endregion
 
     private void Awake()
     {
@@ -31,17 +31,9 @@ public class BaseTile : MonoBehaviour
 
         Color color = Color.white;
 
-        if (layer == 1)
-        {
-            color = new Color(200 / 255f, 50 / 255f, 80 / 255f, 1);
-        }
-        if (layer == 2)
-        {
-            color = new Color(30 / 255f, 150 / 255f, 180 / 255f, 1);
-        }
+        color = ((float)layer / maxLayer) * new Color(0.3f, 0.3f, 0.3f, 1);
 
-        tileServiceLocator.spriteRenderer.color = color;
-
-        this.layer = layer; 
+        // tileServiceLocator.spriteRenderer.color = color;
+        tileServiceLocator.tileProperty.Layer = layer;
     }
 }

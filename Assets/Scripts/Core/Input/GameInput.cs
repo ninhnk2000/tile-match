@@ -52,10 +52,13 @@ public class GameInput : MonoBehaviour
                 }
                 else if (_selectingTiles[1] == null && tile != _selectingTiles[0])
                 {
-                    Debug.Log("SAFERIO " + tile.faction + "/" + tile.layer);
-                    Debug.Log("SAFERIO " + _selectingTiles[0].faction + "/" + _selectingTiles[0].layer);
+                    // Debug.Log("SAFERIO " + tile.faction + "/" + tile.layer);
+                    // Debug.Log("SAFERIO " + _selectingTiles[0].faction + "/" + _selectingTiles[0].layer);
 
-                    if (tile.faction == _selectingTiles[0].faction && tile.layer == _selectingTiles[0].layer)
+                    TileProperty tileProperty = tile.tileServiceLocator.tileProperty;
+                    TileProperty selectedTileProperty = _selectingTiles[0].tileServiceLocator.tileProperty;
+
+                    if (tileProperty.Faction == selectedTileProperty.Faction && tileProperty.Layer == selectedTileProperty.Layer)
                     {
                         _selectingTiles[1] = tile;
 

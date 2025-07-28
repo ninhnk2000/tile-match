@@ -3,6 +3,7 @@ using UnityEngine;
 public class TileServiceLocator : MonoBehaviour
 {
     [SerializeField] public BaseTile tile;
+    [SerializeField] public TileProperty tileProperty;
     [SerializeField] public TileUI tileUI;
     [SerializeField] public TileMaterialPropertyBlock tileMaterialPropertyBlock;
 
