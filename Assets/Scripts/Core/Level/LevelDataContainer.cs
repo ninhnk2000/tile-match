@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "ScriptableObjects/Saferio/ScrewAway/LevelDataContainer")]
+[CreateAssetMenu(menuName = "ScriptableObjects/Saferio/LevelDataContainer")]
 public class LevelDataContainer : ScriptableObject
 {
     [SerializeField] private int maxLevel;

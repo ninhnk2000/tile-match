@@ -70,12 +70,9 @@ public class GameTool : EditorWindow
         {
             if (asset is Sprite sprite)
             {
-                Debug.Log("SAFERIO " + sprite);
                 sprites.Add(sprite);
             }
         }
-
-        Debug.Log("SAFERIO " + sprites.Count);
 
         tilePrefab.GetComponent<TileUI>().spriteContainer = sprites.ToArray();
     }
@@ -100,7 +97,10 @@ public class GameTool : EditorWindow
         }
         //
 
-        GenerateLayer(0, level);
+        for (int i = 0; i <= 2; i++)
+        {
+            GenerateLayer(i, level);
+        }
 
         EditorUtility.SetDirty(level);
     }
@@ -109,20 +109,25 @@ public class GameTool : EditorWindow
     {
         float tileSize = tilePrefab.GetComponent<TileUI>().TileSize;
 
-        List<GameObject> spawnedTiles = HorizontalSymmetricGrid.GenerateGrid(tilePrefab.gameObject, container, 6, 7, tileSize, 0.65f);
+        List<GameObject> spawnedTiles = HorizontalSymmetricGrid.GenerateGrid(tilePrefab.gameObject, container, 6 + layer % 2, 7 + layer % 2, tileSize, 0.5f);
 
         List<BaseTile> _spawnedTileComponents = new List<BaseTile>();
 
         for (int i = 0; i < spawnedTiles.Count; i++)
         {
             _spawnedTileComponents.Add(spawnedTiles[i].GetComponent<BaseTile>());
+
+            Vector3 position = spawnedTiles[i].transform.position;
+
+            position.z = layer;
+
+            spawnedTiles[i].transform.position = position;
         }
 
         List<int> poolFaction = RandomizeFactionForTiles(_spawnedTileComponents.Count);
 
         for (int i = 0; i < _spawnedTileComponents.Count; i++)
         {
-            Debug.Log("Saferui " + _spawnedTileComponents[i]);
             _spawnedTileComponents[i].tileServiceLocator.tileProperty.Faction = poolFaction[i];
             _spawnedTileComponents[i].tileServiceLocator.tileUI.SetIcon(poolFaction[i]);
         }

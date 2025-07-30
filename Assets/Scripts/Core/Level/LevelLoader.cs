@@ -1,57 +1,29 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Firebase.RemoteConfig;
 using PrimeTween;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 
 public class LevelLoader : MonoBehaviour
 {
-    [Header("Clone to calculate level rotation")]
-    [SerializeField] private Transform cloneToCalculateRotation;
-
     [Header("SCRIPTABLE OBJECT")]
     [SerializeField] private IntVariable currentLevel;
     [SerializeField] private LevelDataContainer levelDataContainer;
 
-    [Header("Textured Material Level")]
-    [SerializeField] private Material texturedMaterial;
-
     #region PRIVATE FIELD
     private List<Tween> _tweens;
-    private List<Tween> _autoCenterLevelTweens;
     private int _maxLevel;
-    private Transform _currentLevelContainer;
-    private Transform _pivotAdjust;
-    private bool _isNotAutoCenterLevel;
-    private bool _isSetLevelGradientBound;
-    private bool _isNewLoopLevel;
-    private int _nextLevel;
-    private bool _isLoopLevel;
     #endregion
 
     #region EVENT
     public static event Action startLevelEvent;
-    public static event Action setLevelNumberEvent;
-    public static event Action<int> setLevelScrewNumberEvent;
-    public static event Action<int> setMultiPhaseLevelScrewNumberEvent;
-    public static event Action showSceneTransitionEvent;
-    public static event Action setIsLevelLoadedEvent;
-    public static event Action<bool> enableSwipingEvent;
-    public static event Action<float> setTargetOrthographicSizeEvent;
-    public static event Action<bool> showLoadLevelErrorEvent;
     #endregion
 
     private void Awake()
     {
         _tweens = new List<Tween>();
-        _autoCenterLevelTweens = new List<Tween>();
-
-        currentLevel.Load();
 
         _maxLevel = levelDataContainer.MaxLevel;
 
@@ -63,7 +35,6 @@ public class LevelLoader : MonoBehaviour
     void OnDestroy()
     {
         CommonUtil.StopAllTweens(_tweens);
-        CommonUtil.StopAllTweens(_autoCenterLevelTweens);
     }
 
     #region LEVEL
@@ -82,7 +53,7 @@ public class LevelLoader : MonoBehaviour
         // }
         // //
 
-        int nextLevel = 1;
+        int nextLevel = currentLevel.Value;
 
         bool isLoopLevel = false;
 
@@ -149,24 +120,11 @@ public class LevelLoader : MonoBehaviour
             {
                 GameObject level = Instantiate(op.Result, transform);
 
-                _currentLevelContainer = level.transform;
-
-                AutoAssignScrewFactionMultiPhaseLevel(level);
-
-                texturedMaterial.SetVector("_MainTextureOffset", new Vector2(0, 0));
-
-                if (isLoopLevel)
-                {
-                    RandomizeLevelModelColor(level);
-                }
-                else
-                {
-                    SaferioTracking.TrackLevelStart(currentLevel.Value);
-                }
+                // SaferioTracking.TrackLevelStart(currentLevel.Value);
             }
         };
 
-        showSceneTransitionEvent?.Invoke();
+        // showSceneTransitionEvent?.Invoke();
     }
 
     private async void GoLevel(int level)
@@ -179,8 +137,6 @@ public class LevelLoader : MonoBehaviour
         }
 
         currentLevel.Value = level;
-
-        currentLevel.Save();
 
         startLevelEvent?.Invoke();
 
@@ -211,8 +167,6 @@ public class LevelLoader : MonoBehaviour
     private int GetLoopLevel()
     {
         int currentLoopLevel = DataUtility.Load(GameConstants.CURRENT_LEVEL_LOOP, -1);
-
-        _isNewLoopLevel = currentLoopLevel == -1;
 
         if (currentLoopLevel == -1)
         {
