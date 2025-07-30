@@ -10,7 +10,7 @@ public class GameTool : EditorWindow
     private Texture2D spriteSheet;
 
     #region SPECIFIC
-    private GameObject prefabTile;
+    private GameObject tilePrefab;
     #endregion
 
     [MenuItem("Tools/Game Tool")]
@@ -23,15 +23,21 @@ public class GameTool : EditorWindow
     {
         EditorGUILayout.LabelField("Auto Assign Sprites from Folder", EditorStyles.boldLabel);
         targetFolder = (DefaultAsset)EditorGUILayout.ObjectField("Target Folder", targetFolder, typeof(DefaultAsset), false);
-        prefabTile = (GameObject)EditorGUILayout.ObjectField("Prefab Tile", prefabTile, typeof(GameObject), true);
+        tilePrefab = (GameObject)EditorGUILayout.ObjectField("Prefab Tile", tilePrefab, typeof(GameObject), true);
         spriteSheet = (Texture2D)EditorGUILayout.ObjectField("Sprite Sheet", spriteSheet, typeof(Texture2D), false);
 
         if (GUILayout.Button("Assign Sprites"))
         {
             LoadAllSpritesFromSheet();
         }
+
+        if (GUILayout.Button("Generate Level"))
+        {
+            GenerateLevel();
+        }
     }
 
+    #region AUTO ASSIGN
     // private void LoadAllSpritesFromFolder(string folderPath)
     // {
     //     string[] guids = AssetDatabase.FindAssets("t:Sprite", new[] { folderPath });
@@ -71,6 +77,77 @@ public class GameTool : EditorWindow
 
         Debug.Log("SAFERIO " + sprites.Count);
 
-        prefabTile.GetComponent<TileUI>().spriteContainer = sprites.ToArray();
+        tilePrefab.GetComponent<TileUI>().spriteContainer = sprites.ToArray();
     }
+    #endregion
+
+    #region LEVEL
+    private void GenerateLevel()
+    {
+        Transform level = Selection.activeTransform;
+
+        // Remove old content
+        List<Transform> toRemoveList = new List<Transform>();
+
+        for (int i = 0; i < level.childCount; i++)
+        {
+            toRemoveList.Add(level.GetChild(i));
+        }
+
+        foreach (var item in toRemoveList)
+        {
+            DestroyImmediate(item.gameObject, true);
+        }
+        //
+
+        GenerateLayer(0, level);
+
+        EditorUtility.SetDirty(level);
+    }
+
+    private void GenerateLayer(int layer, Transform container)
+    {
+        float tileSize = tilePrefab.GetComponent<TileUI>().TileSize;
+
+        List<GameObject> spawnedTiles = HorizontalSymmetricGrid.GenerateGrid(tilePrefab.gameObject, container, 6, 7, tileSize, 0.65f);
+
+        List<BaseTile> _spawnedTileComponents = new List<BaseTile>();
+
+        for (int i = 0; i < spawnedTiles.Count; i++)
+        {
+            _spawnedTileComponents.Add(spawnedTiles[i].GetComponent<BaseTile>());
+        }
+
+        List<int> poolFaction = RandomizeFactionForTiles(_spawnedTileComponents.Count);
+
+        for (int i = 0; i < _spawnedTileComponents.Count; i++)
+        {
+            Debug.Log("Saferui " + _spawnedTileComponents[i]);
+            _spawnedTileComponents[i].tileServiceLocator.tileProperty.Faction = poolFaction[i];
+            _spawnedTileComponents[i].tileServiceLocator.tileUI.SetIcon(poolFaction[i]);
+        }
+    }
+
+    public List<int> RandomizeFactionForTiles(int numTile)
+    {
+        List<int> factions = new List<int>();
+
+        int counter = 0;
+        int currentFaction = 0;
+
+        for (int i = 0; i < numTile; i++)
+        {
+            if (counter % 3 == 0)
+            {
+                currentFaction = Random.Range(0, 9);
+            }
+
+            factions.Add(currentFaction);
+
+            counter++;
+        }
+
+        return factions;
+    }
+    #endregion
 }

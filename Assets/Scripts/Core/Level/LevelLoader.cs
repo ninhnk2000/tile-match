@@ -1,298 +1,246 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Firebase.RemoteConfig;
+using PrimeTween;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 public class LevelLoader : MonoBehaviour
 {
-    [SerializeField] private BaseTile tilePrefab;
+    [Header("Clone to calculate level rotation")]
+    [SerializeField] private Transform cloneToCalculateRotation;
+
+    [Header("SCRIPTABLE OBJECT")]
+    [SerializeField] private IntVariable currentLevel;
+    [SerializeField] private LevelDataContainer levelDataContainer;
+
+    [Header("Textured Material Level")]
+    [SerializeField] private Material texturedMaterial;
 
     #region PRIVATE FIELD
-    private List<BaseTile> _spawnedTiles;
+    private List<Tween> _tweens;
+    private List<Tween> _autoCenterLevelTweens;
+    private int _maxLevel;
+    private Transform _currentLevelContainer;
+    private Transform _pivotAdjust;
+    private bool _isNotAutoCenterLevel;
+    private bool _isSetLevelGradientBound;
+    private bool _isNewLoopLevel;
+    private int _nextLevel;
+    private bool _isLoopLevel;
+    #endregion
+
+    #region EVENT
+    public static event Action startLevelEvent;
+    public static event Action setLevelNumberEvent;
+    public static event Action<int> setLevelScrewNumberEvent;
+    public static event Action<int> setMultiPhaseLevelScrewNumberEvent;
+    public static event Action showSceneTransitionEvent;
+    public static event Action setIsLevelLoadedEvent;
+    public static event Action<bool> enableSwipingEvent;
+    public static event Action<float> setTargetOrthographicSizeEvent;
+    public static event Action<bool> showLoadLevelErrorEvent;
     #endregion
 
     private void Awake()
     {
-        GenerateLayer(0);
-        // GenerateBoard();
+        _tweens = new List<Tween>();
+        _autoCenterLevelTweens = new List<Tween>();
+
+        currentLevel.Load();
+
+        _maxLevel = levelDataContainer.MaxLevel;
+
+        GoLevel(currentLevel.Value);
+
+        GamePersistentVariable.hasPlayerReachedGameplay = true;
     }
 
-    private void GenerateBoard()
+    void OnDestroy()
     {
-        int row = 3;
-        int column = 2;
+        CommonUtil.StopAllTweens(_tweens);
+        CommonUtil.StopAllTweens(_autoCenterLevelTweens);
+    }
 
-        float tileSize = tilePrefab.GetComponent<TileUI>().TileSize;
+    #region LEVEL
+    private async void LoadLevel()
+    {
+        // // NO INTERNET
+        // if (Application.internetReachability == NetworkReachability.NotReachable)
+        // {
+        //     showLoadLevelErrorEvent?.Invoke(true);
 
-        Vector2 offset = Vector2.zero;
+        //     return;
+        // }
+        // else
+        // {
+        //     showLoadLevelErrorEvent?.Invoke(false);
+        // }
+        // //
 
-        Dictionary<Vector2, SpawnTileInfo> checkList = new Dictionary<Vector2, SpawnTileInfo>();
+        int nextLevel = 1;
 
-        _spawnedTiles = new List<BaseTile>();
+        bool isLoopLevel = false;
 
-        for (int i = 0; i <= row; i++)
+        // if (!UserData.IsLoopLevel)
+        // {
+        //     if (currentLevel.Value <= _maxLevel)
+        //     {
+        //         nextLevel = currentLevel.Value;
+        //     }
+        //     else
+        //     {
+        //         nextLevel = GetLoopLevel();
+
+        //         await UserData.SetIsLoopLevel(true);
+        //         await UserData.SetIsLastLevelBeforeLoop(_maxLevel);
+
+        //         isLoopLevel = true;
+        //     }
+        // }
+        // else
+        // {
+        //     if (currentLevel.Value - UserData.NumLevelLoop >= _maxLevel)
+        //     {
+        //         nextLevel = GetLoopLevel();
+        //     }
+        //     else
+        //     {
+        //         nextLevel = currentLevel.Value - UserData.NumLevelLoop;
+        //     }
+
+        //     isLoopLevel = true;
+        // }
+
+        // nextLevel = Mathf.Clamp(nextLevel, 1, _maxLevel);
+
+        // GamePersistentVariable.levelPrefab = nextLevel;
+
+        // setLevelNumberEvent?.Invoke();
+
+        // nextLevel = RemoteConfigLevelManager.GetReplacedLevelIndex(nextLevel);
+
+        string levelPrefab = $"Level {nextLevel}";
+
+        // // REMOTE LEVELS
+        // if (nextLevel > 10)
+        // {
+        //     if (!GamePersistentVariable.isRemoteLevelsDownloaded)
+        //     {
+        //         showLoadLevelErrorEvent?.Invoke(true);
+
+        //         return;
+        //     }
+        //     else
+        //     {
+        //         showLoadLevelErrorEvent?.Invoke(false);
+        //     }
+        // }
+
+        AsyncOperationHandle<GameObject> handle = Addressables.LoadAssetAsync<GameObject>(levelPrefab);
+
+        handle.Completed += (op) =>
         {
-            for (int j = 0; j <= column; j++)
+            if (op.Status == AsyncOperationStatus.Succeeded)
             {
-                bool isRandomSpawn = GetRandomPercentChance(75);
+                GameObject level = Instantiate(op.Result, transform);
 
-                if (isRandomSpawn)
+                _currentLevelContainer = level.transform;
+
+                AutoAssignScrewFactionMultiPhaseLevel(level);
+
+                texturedMaterial.SetVector("_MainTextureOffset", new Vector2(0, 0));
+
+                if (isLoopLevel)
                 {
-                    // checkList.Add(new Vector2(j, i), true);
+                    RandomizeLevelModelColor(level);
                 }
                 else
                 {
-                    checkList.Add(new Vector2(j, i), null);
-
-                    continue;
-                }
-
-                Vector2 position;
-
-                position.x = j * tileSize;
-                position.y = i * tileSize;
-
-                // if (j > 0)
-                // {
-                //     offset.x = Random.Range(0, 2) * 0.5f * tileSize;
-
-                //     position += offset;
-                // }
-
-                BaseTile tile = Instantiate(tilePrefab, transform);
-
-                tile.transform.position = position;
-
-                int layer = Random.Range(0, 3);
-
-                tile.SetLayer(layer);
-
-
-
-
-
-                SpawnTileInfo spawnTileInfo = new SpawnTileInfo();
-
-                spawnTileInfo.coordinator = new Vector2(j, i);
-                spawnTileInfo.position = position;
-                spawnTileInfo.layer = layer;
-
-                checkList.Add(new Vector2(j, i), spawnTileInfo);
-
-                _spawnedTiles.Add(tile);
-            }
-        }
-
-        // Symetricalize
-        for (int i = -row; i <= row; i++)
-        {
-            for (int j = -column; j <= column; j++)
-            {
-                if (i >= 0 && j >= 0)
-                {
-                    continue;
-                }
-
-                if (checkList[new Vector2(Mathf.Abs(j), Mathf.Abs(i))] != null)
-                {
-                    SpawnTileInfo spawnTileInfo = checkList[new Vector2(Mathf.Abs(j), Mathf.Abs(i))];
-
-                    BaseTile tile = Instantiate(tilePrefab, transform);
-
-                    Vector2 position = spawnTileInfo.position;
-
-                    if (j < 0)
-                    {
-                        position.x *= -1;
-                    }
-
-                    if (i < 0)
-                    {
-                        position.y *= -1;
-                    }
-
-                    tile.transform.position = position;
-                    tile.SetLayer(spawnTileInfo.layer);
-
-                    _spawnedTiles.Add(tile);
+                    SaferioTracking.TrackLevelStart(currentLevel.Value);
                 }
             }
-        }
+        };
 
-        // Faction
-        List<int> poolFaction = new List<int>();
-
-        for (int i = 0; i < _spawnedTiles.Count; i++)
-        {
-            int faction = Random.Range(0, 9);
-
-            poolFaction.Add(faction);
-        }
-
-        for (int i = 0; i < _spawnedTiles.Count; i++)
-        {
-            _spawnedTiles[i].tileServiceLocator.tileProperty.Faction = poolFaction[i];
-            _spawnedTiles[i].tileServiceLocator.tileUI.SetIcon(poolFaction[i]);
-            // _spawnedTiles[i].tileServiceLocator.tileUI.SetFactionText(poolFaction[i]);
-        }
+        showSceneTransitionEvent?.Invoke();
     }
 
-    private void GenerateLayer(int layer)
+    private async void GoLevel(int level)
     {
-        float tileSize = tilePrefab.GetComponent<TileUI>().TileSize;
+        await Task.Delay(500);
 
-        List<GameObject> spawnedTiles = HorizontalSymmetricGrid.GenerateGrid(tilePrefab.gameObject, 6, 7, tileSize, 0.65f);
-
-        _spawnedTiles = new List<BaseTile>();
-
-        for (int i = 0; i < spawnedTiles.Count; i++)
+        if (gameObject.transform.childCount > 0)
         {
-            _spawnedTiles.Add(spawnedTiles[i].GetComponent<BaseTile>());
+            Destroy(gameObject.transform.GetChild(0).gameObject);
         }
 
-        List<int> poolFaction = GetAllocatedFactions(_spawnedTiles.Count);
+        currentLevel.Value = level;
 
-        for (int i = 0; i < _spawnedTiles.Count; i++)
-        {
-            _spawnedTiles[i].tileServiceLocator.tileProperty.Faction = poolFaction[i];
-            _spawnedTiles[i].tileServiceLocator.tileUI.SetIcon(poolFaction[i]);
-        }
+        currentLevel.Save();
+
+        startLevelEvent?.Invoke();
+
+        LoadLevel();
+
+        GamePersistentVariable.isLevelDirty = false;
     }
 
-    public List<int> GetAllocatedFactions(int numTile)
+    private void NextLevel()
     {
-        List<int> factions = new List<int>();
-
-        int counter = 0;
-        int currentFaction = 0;
-
-        for (int i = 0; i < numTile; i++)
-        {
-            if (counter % 3 == 0)
-            {
-                currentFaction = Random.Range(0, 9);
-            }
-
-            factions.Add(currentFaction);
-
-            counter++;
-        }
-
-        return factions;
+        GoLevel(currentLevel.Value + 1);
     }
 
-    bool GetRandomPercentChance(int percent)
+    private void PrevLevel()
     {
-        return Random.value <= percent / 100f;
+        GoLevel(currentLevel.Value - 1);
     }
-}
 
-public static class HorizontalSymmetricGrid
-{
-    public static List<GameObject> GenerateGrid(GameObject prefab, int columns, int rows, float spacing, float fillRatio)
+    private void Replay()
     {
-        List<GameObject> spawnedObjects = new List<GameObject>();
+        GamePersistentVariable.isPreventLoadLevelData = true;
 
-        List<Vector2Int> leftHalf = new List<Vector2Int>();
-        int midCol = columns / 2;
+        GoLevel(currentLevel.Value);
+    }
+    #endregion
 
-        for (int y = 0; y < rows; y++)
+    #region UTIL
+    private int GetLoopLevel()
+    {
+        int currentLoopLevel = DataUtility.Load(GameConstants.CURRENT_LEVEL_LOOP, -1);
+
+        _isNewLoopLevel = currentLoopLevel == -1;
+
+        if (currentLoopLevel == -1)
         {
-            for (int x = 0; x < midCol; x++)
-                leftHalf.Add(new Vector2Int(x, y));
+            int randomLoopLevel = UnityEngine.Random.Range(6, _maxLevel);
 
-            if (columns % 2 != 0)
-                leftHalf.Add(new Vector2Int(midCol, y));
-        }
+            DataUtility.Save(GameConstants.CURRENT_LEVEL_LOOP, randomLoopLevel);
 
-        ShuffleList(leftHalf);
-
-        int maxPairs = columns % 2 == 0 ? leftHalf.Count : leftHalf.Count - rows;
-        int maxCenter = columns % 2 == 0 ? 0 : rows;
-
-        int maxFill = Mathf.FloorToInt((maxPairs * 2 + maxCenter) * fillRatio);
-
-        int pairCount = 0;
-        int centerCount = 0;
-
-        if (columns % 2 == 0)
-        {
-            maxFill = RoundDownToDiv(maxFill, 3 * 2);
-
-            pairCount = maxFill / 2;
-            centerCount = 0;
+            return randomLoopLevel;
         }
         else
         {
-            maxFill = RoundDownToDiv(maxFill, 3);
-
-            for (int c = Mathf.Min(maxCenter, maxFill); c >= 0; c--)
-            {
-                int remaining = maxFill - c;
-                if (remaining < 0) continue;
-                if (remaining % 2 != 0) continue;
-
-                int p = remaining / 2;
-                if (p <= maxPairs && (p * 2 + c) % 3 == 0)
-                {
-                    pairCount = p;
-                    centerCount = c;
-                    break;
-                }
-            }
+            return currentLoopLevel;
         }
-
-        int spawned = 0;
-
-        for (int i = 0; i < pairCount; i++)
-        {
-            Vector2Int pos = leftHalf[i];
-            Vector2Int mirror = new Vector2Int(columns - 1 - pos.x, pos.y);
-            spawnedObjects.Add(SpawnAt(prefab, pos, columns, rows, spacing));
-            spawnedObjects.Add(SpawnAt(prefab, mirror, columns, rows, spacing));
-            spawned += 2;
-        }
-
-        if (centerCount > 0)
-        {
-            for (int i = 0; i < centerCount; i++)
-            {
-                Vector2Int centerPos = new Vector2Int(midCol, i);
-                spawnedObjects.Add(SpawnAt(prefab, centerPos, columns, rows, spacing));
-                spawned += 1;
-            }
-        }
-
-        return spawnedObjects;
     }
 
-    static GameObject SpawnAt(GameObject prefab, Vector2Int gridPos, int columns, int rows, float spacing)
+    void ShuffleList<T>(List<T> list)
     {
-        float offsetX = (columns - 1) * spacing / 2f;
-        float offsetY = (rows - 1) * spacing / 2f;
-        Vector3 worldPos = new Vector3(gridPos.x * spacing - offsetX, gridPos.y * spacing - offsetY, 0);
+        System.Random rand = new System.Random();
+        int n = list.Count;
 
-        GameObject tile = Object.Instantiate(prefab, worldPos, Quaternion.identity);
-
-        return tile;
-    }
-
-    static void ShuffleList<T>(List<T> list)
-    {
-        for (int i = 0; i < list.Count; i++)
+        while (n > 1)
         {
-            int rand = Random.Range(i, list.Count);
-            (list[i], list[rand]) = (list[rand], list[i]);
+            n--;
+            int k = rand.Next(n + 1);
+            T value = list[k];
+            list[k] = list[n];
+            list[n] = value;
         }
     }
-
-    static int RoundDownToDiv(int value, int divBy)
-    {
-        return value - (value % divBy);
-    }
-}
-
-public class SpawnTileInfo
-{
-    public Vector2 coordinator;
-    public Vector3 position;
-    public int layer;
+    #endregion
 }

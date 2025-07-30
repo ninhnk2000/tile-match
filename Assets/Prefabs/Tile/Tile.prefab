@@ -602,7 +602,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f64016b22b62bf34ab97d3cddf84a681, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tileServiceLocator: {fileID: 0}
+  tileServiceLocator: {fileID: 4869614063864754547}
 --- !u!114 &4869614063864754547
 MonoBehaviour:
   m_ObjectHideFlags: 0
